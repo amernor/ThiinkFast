@@ -1,0 +1,2 @@
+# ThiinkFast
+YARDWORK AI HACKATHON 4/12
