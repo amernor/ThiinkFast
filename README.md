@@ -30,6 +30,11 @@ It’s built for neurodivergent thinkers who write fast, think visually, and nee
 
 🔄 Adaptive learning — tailors suggestions based on frequent user tendencies and phrasing.
 
+🧠 How It Works
+ThinkFast is built to learn from you, not lecture you. As you type, it silently analyzes your writing patterns — spotting frequently misspelled words, common phrasing quirks, and your personal language style. Instead of flagging every mistake with distracting red underlines (which can overwhelm users with ADHD or anxiety), ThinkFast offers an auto-correct mode that gently fixes errors in real time, without interrupting your flow. Over time, it builds a correction model tailored to you — turning repeated mistakes into invisible improvements. Prefer to review edits yourself? Manual mode highlights corrections only when you ask, giving you full control over how and when feedback appears.
+
+
+
 
 (enter screesnhot here of website)
 
