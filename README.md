@@ -19,7 +19,7 @@ ThiinkFast - your hyperpersonalized autocorrect!
 
 🎯 Purpose-Driven Innovation
 
-ThinkFast isn't just a grammar tool — it's a writing assistant designed with empathy and adaptability.
+ThiinkFast isn't just a grammar tool — it's a writing assistant designed with empathy and adaptability.
 It’s built for neurodivergent thinkers who write fast, think visually, and need real-time support without interruption or shame.
 
 ✅ Auto-correct that respects flow — fixes errors gently in the background when enabled.
