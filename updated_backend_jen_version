@@ -1,0 +1,295 @@
+# main.py
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+from typing import List, Dict, Optional
+import json
+import os
+from datetime import datetime
+import time
+
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import torch
+
+# Initialize FastAPI app
+app = FastAPI(title="Grammar Correction API")
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Load model and tokenizer
+try:
+    tokenizer = AutoTokenizer.from_pretrained("prithivida/grammar_error_correcter_v1")
+    model = AutoModelForSeq2SeqLM.from_pretrained("prithivida/grammar_error_correcter_v1")
+    print("Model and tokenizer loaded successfully")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    # Use backup dictionaries if model fails to load
+    MODEL_LOADED = False
+else:
+    MODEL_LOADED = True
+
+# Data storage (would use a database in production)
+USER_DATA_FILE = "user_data.json"
+
+# Initialize user data if file doesn't exist
+if not os.path.exists(USER_DATA_FILE):
+    initial_data = {
+        "misspelled_words": {},
+        "typing_speed": [],
+        "correction_history": []
+    }
+    with open(USER_DATA_FILE, "w") as f:
+        json.dump(initial_data, f)
+
+# Pydantic models for request/response
+class TextCorrectionRequest(BaseModel):
+    text: str
+    typing_duration: Optional[float] = None
+
+class MisspelledWord(BaseModel):
+    original: str
+    corrected: str
+    count: int
+
+class TextCorrectionResponse(BaseModel):
+    original_text: str
+    corrected_text: str
+    corrections: List[Dict[str, str]]
+    has_changes: bool
+
+class TypingSpeedData(BaseModel):
+    date: str
+    wpm: float
+
+class InsightsResponse(BaseModel):
+    misspelled_words: List[MisspelledWord]
+    typing_speed: List[TypingSpeedData]
+
+# Common English misspellings dictionary as backup
+COMMON_MISSPELLINGS = {
+    "definately": "definitely",
+    "seperate": "separate",
+    "occured": "occurred",
+    "recieve": "receive",
+    "untill": "until",
+    "teh": "the",
+    "taht": "that",
+    "wierd": "weird",
+    "thier": "their",
+    "truely": "truly",
+    "beleive": "believe",
+    "accomodate": "accommodate",
+    "acheive": "achieve",
+    "adress": "address",
+    "begining": "beginning",
+    "bizzare": "bizarre",
+    "calender": "calendar",
+    "concieve": "conceive",
+    "commited": "committed",
+    "embarass": "embarrass",
+    "existance": "existence",
+    "enviroment": "environment",
+    "freind": "friend",
+    "goverment": "government",
+    "grammer": "grammar",
+    "implemantion": "implementation",
+    "implament": "implement",
+    "independant": "independent",
+    "necesary": "necessary",
+    "becuase": "because"
+}
+
+# Function to correct grammar using the model
+def correct_grammar_with_model(text):
+    """Correct grammar using the pre-trained model"""
+    # Skip empty text
+    if not text.strip():
+        return text, []
+
+    # Tokenize the input text
+    inputs = tokenizer(text, return_tensors="pt", padding=True)
+
+    # Generate the corrected output with slightly increased max length
+    outputs = model.generate(
+        **inputs, 
+        max_length=100,  # Increased to handle longer sentences
+        num_beams=5,     # Beam search for better quality
+        early_stopping=True
+    )
+
+    # Decode the output tokens to text
+    corrected_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    # Find differences between original and corrected text
+    corrections = []
+    if text != corrected_text:
+        # Simple word by word comparison
+        original_words = text.split()
+        corrected_words = corrected_text.split()
+
+        # Compare words and identify corrections
+        for i in range(min(len(original_words), len(corrected_words))):
+            if original_words[i].lower() != corrected_words[i].lower():
+                corrections.append({
+                    "original": original_words[i],
+                    "corrected": corrected_words[i]
+                })
+
+    return corrected_text, corrections
+
+# Backup correction function using dictionary
+def correct_grammar_with_dictionary(text):
+    """Correct common misspellings using dictionary"""
+    corrected_text = text
+    corrections = []
+
+    words = text.split()
+    for i, word in enumerate(words):
+        word_lower = word.lower()
+        if word_lower in COMMON_MISSPELLINGS:
+            correction = COMMON_MISSPELLINGS[word_lower]
+            # Preserve case
+            if word.isupper():
+                correction = correction.upper()
+            elif word[0].isupper():
+                correction = correction.capitalize()
+
+            corrections.append({
+                "original": word,
+                "corrected": correction
+            })
+            words[i] = correction
+
+    corrected_text = " ".join(words)
+    return corrected_text, corrections
+
+# Function to update user statistics
+def update_user_stats(original_text, corrected_text, corrections, typing_duration=None):
+    """Update user statistics with correction data"""
+    try:
+        # Load existing data
+        with open(USER_DATA_FILE, "r") as f:
+            user_data = json.load(f)
+
+        # Update misspelled words count
+        for correction in corrections:
+            original = correction["original"].lower()
+            corrected = correction["corrected"].lower()
+
+            if original not in user_data["misspelled_words"]:
+                user_data["misspelled_words"][original] = {
+                    "corrected": corrected,
+                    "count": 0
+                }
+
+            user_data["misspelled_words"][original]["count"] += 1
+
+        # Record correction in history
+        timestamp = datetime.now().isoformat()
+        user_data["correction_history"].append({
+            "timestamp": timestamp,
+            "original": original_text,
+            "corrected": corrected_text,
+            "corrections": corrections
+        })
+
+        # Calculate and record typing speed if duration provided
+        if typing_duration and typing_duration > 0:
+            word_count = len(original_text.split())
+            if word_count > 0 and typing_duration > 0:
+                # Convert to minutes and calculate WPM
+                minutes = typing_duration / 60
+                wpm = word_count / minutes
+
+                user_data["typing_speed"].append({
+                    "date": datetime.now().strftime("%a"),
+                    "wpm": round(wpm, 1)
+                })
+
+        # Save updated data
+        with open(USER_DATA_FILE, "w") as f:
+            json.dump(user_data, f)
+
+    except Exception as e:
+        print(f"Error updating user stats: {e}")
+
+# API endpoints
+@app.post("/api/correct", response_model=TextCorrectionResponse)
+async def correct_text(request: TextCorrectionRequest):
+    """Correct grammar in submitted text"""
+    text = request.text
+    typing_duration = request.typing_duration
+
+    try:
+        if MODEL_LOADED:
+            corrected_text, corrections = correct_grammar_with_model(text)
+        else:
+            corrected_text, corrections = correct_grammar_with_dictionary(text)
+
+        # Update user statistics
+        if corrected_text != text:
+            update_user_stats(text, corrected_text, corrections, typing_duration)
+
+        return {
+            "original_text": text,
+            "corrected_text": corrected_text,
+            "corrections": corrections,
+            "has_changes": text != corrected_text
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing text: {str(e)}")
+
+@app.get("/api/insights", response_model=InsightsResponse)
+async def get_insights():
+    """Get user insights data for dashboard"""
+    try:
+        with open(USER_DATA_FILE, "r") as f:
+            user_data = json.load(f)
+
+        # Format misspelled words data
+        misspelled_words = []
+        for word, data in user_data["misspelled_words"].items():
+            misspelled_words.append({
+                "original": word,
+                "corrected": data["corrected"],
+                "count": data["count"]
+            })
+
+        # Sort by count, descending
+        misspelled_words.sort(key=lambda x: x["count"], reverse=True)
+
+        return {
+            "misspelled_words": misspelled_words[:10],  # Top 10 misspelled words
+            "typing_speed": user_data["typing_speed"][-7:]  # Last 7 days
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving insights: {str(e)}")
+
+# Serve static files and HTML frontend
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend(request: Request):
+    """Serve the frontend HTML page"""
+    return templates.TemplateResponse("index.html", {"request": request})
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "model_loaded": MODEL_LOADED}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
