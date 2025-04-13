@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,10 +6,459 @@
     <title>Smart Grammar Correction</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* (The full CSS from the user's input is here) */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-top: 0;
+        }
+        .chart-container {
+            margin: 30px 0;
+            position: relative;
+            height: 300px;
+        }
+        .insight-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: 500;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .result-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: #f9fafb;
+        }
+        .correction {
+            display: inline-block;
+            background-color: #fef3c7;
+            border-bottom: 2px dashed #d97706;
+            padding: 0 2px;
+            cursor: help;
+            position: relative;
+        }
+        .correction-tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 8px 12px;
+            z-index: 100;
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+            white-space: nowrap;
+        }
+        .correction:hover .correction-tooltip {
+            display: block;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .stat {
+            flex: 1;
+            padding: 15px;
+            background-color: #eff6ff;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #4b5563;
+        }
     </style>
 </head>
 <body>
-    <!-- (The full HTML content from the user's input is here) -->
+    <div class="container">
+        <h1>Smart Grammar Correction</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="correction">Text Correction</div>
+            <div class="tab" data-tab="insights">Usage Insights</div>
+        </div>
+        
+        <div class="tab-content active" id="correction-tab">
+            <textarea id="userInput" placeholder="Type or paste your text here..."></textarea>
+            <button id="correctBtn">Correct Grammar</button>
+            
+            <div class="result-container" id="resultContainer" style="display:none;">
+                <h3>Corrected Text:</h3>
+                <div id="correctedText"></div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value" id="correctionCount">0</div>
+                        <div class="stat-label">Corrections</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="wordCount">0</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="typingSpeed">0</div>
+                        <div class="stat-label">WPM</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="insights-tab">
+            <div class="insight-card">
+                <h2>Most Misspelled Words</h2>
+                <div class="chart-container">
+                    <canvas id="misspelledChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="insight-card">
+                <h2>Typing Speed (WPM)</h2>
+                <div class="chart-container">
+                    <canvas id="typingChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variables
+        let typingStartTime = null;
+        let misspelledChart = null;
+        let typingChart = null;
+        
+        // DOM elements
+        const userInput = document.getElementById('userInput');
+        const correctBtn = document.getElementById('correctBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const correctedText = document.getElementById('correctedText');
+        const correctionCount = document.getElementById('correctionCount');
+        const wordCount = document.getElementById('wordCount');
+        const typingSpeed = document.getElementById('typingSpeed');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Initialize typing timer when focus on textarea
+        userInput.addEventListener('focus', function() {
+            if (!typingStartTime) {
+                typingStartTime = new Date().getTime();
+            }
+        });
+        
+        // Handle tab switching
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                
+                // Set active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show active content
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(tabId + '-tab').classList.add('active');
+                
+                // Load insights data if insights tab
+                if (tabId === 'insights') {
+                    loadInsights();
+                }
+            });
+        });
+        
+        // Handle text correction
+        correctBtn.addEventListener('click', function() {
+            const text = userInput.value.trim();
+            if (!text) return;
+            
+            const typingDuration = calculateTypingDuration();
+            
+            // Reset typing timer
+            typingStartTime = null;
+            
+            // Call API to correct text
+            fetch('/api/correct', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: text,
+                    typing_duration: typingDuration
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display corrected text with highlighting
+                displayCorrectedText(data);
+                
+                // Update statistics
+                updateStats(data, typingDuration);
+                
+                // Show result container
+                resultContainer.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing your text.');
+            });
+        });
+        
+        // Calculate typing duration in seconds
+        function calculateTypingDuration() {
+            if (!typingStartTime) return null;
+            
+            const now = new Date().getTime();
+            const duration = (now - typingStartTime) / 1000; // Convert to seconds
+            return duration;
+        }
+        
+        // Display corrected text with highlighted corrections
+        function displayCorrectedText(data) {
+            let text = data.corrected_text;
+            const corrections = data.corrections;
+            
+            // No corrections needed
+            if (corrections.length === 0) {
+                correctedText.textContent = text;
+                return;
+            }
+            
+            // Process corrections and highlight them
+            let htmlContent = text;
+            
+            // Replace each correction with highlighted version
+            corrections.forEach(correction => {
+                const original = correction.original;
+                const corrected = correction.corrected;
+                
+                // Replace the corrected word with a highlighted version
+                // Using a simple replace might cause issues with repeated words,
+                // but works for basic demonstration
+                htmlContent = htmlContent.replace(
+                    corrected,
+                    `<span class="correction">${corrected}<span class="correction-tooltip">Original: ${original}</span></span>`
+                );
+            });
+            
+            correctedText.innerHTML = htmlContent;
+        }
+        
+        // Update statistics display
+        function updateStats(data, typingDuration) {
+            // Word count
+            const words = data.original_text.split(/\s+/).filter(word => word.trim().length > 0);
+            wordCount.textContent = words.length;
+            
+            // Correction count
+            correctionCount.textContent = data.corrections.length;
+            
+            // Typing speed (WPM)
+            if (typingDuration && typingDuration > 0) {
+                const minutes = typingDuration / 60;
+                const wpm = words.length / minutes;
+                typingSpeed.textContent = Math.round(wpm);
+            } else {
+                typingSpeed.textContent = 'N/A';
+            }
+        }
+        
+        // Load insights data from API
+        function loadInsights() {
+            fetch('/api/insights')
+            .then(response => response.json())
+            .then(data => {
+                updateInsightsCharts(data);
+            })
+            .catch(error => {
+                console.error('Error loading insights:', error);
+            });
+        }
+        
+        // Update insights charts with data from API
+        function updateInsightsCharts(data) {
+            const misspelledCtx = document.getElementById('misspelledChart').getContext('2d');
+            const typingCtx = document.getElementById('typingChart').getContext('2d');
+            
+            // Prepare misspelled words data
+            const misspelledWords = data.misspelled_words || [];
+            const misspelledLabels = misspelledWords.map(item => item.original);
+            const misspelledCounts = misspelledWords.map(item => item.count);
+            
+            // Prepare typing speed data
+            const typingData = data.typing_speed || [];
+            const typingLabels = typingData.map(item => item.date);
+            const typingSpeeds = typingData.map(item => item.wpm);
+            
+            // Destroy existing charts if they exist
+            if (misspelledChart) misspelledChart.destroy();
+            if (typingChart) typingChart.destroy();
+            
+            // Create misspelled words chart
+            misspelledChart = new Chart(misspelledCtx, {
+                type: 'bar',
+                data: {
+                    labels: misspelledLabels.length > 0 ? misspelledLabels : ['No data available'],
+                    datasets: [{
+                        label: 'Misspell Count',
+                        data: misspelledCounts.length > 0 ? misspelledCounts : [0],
+                        backgroundColor: '#2563eb',
+                        borderColor: '#1d4ed8',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Create typing speed chart
+            typingChart = new Chart(typingCtx, {
+                type: 'line',
+                data: {
+                    labels: typingLabels.length > 0 ? typingLabels : ['No data available'],
+                    datasets: [{
+                        label: 'Words Per Minute',
+                        data: typingSpeeds.length > 0 ? typingSpeeds : [0],
+                        fill: false,
+                        borderColor: '#2563eb',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: Math.max(0, Math.min(...typingSpeeds) - 10)
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize with default data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize charts with placeholder data
+            const misspelledCtx = document.getElementById('misspelledChart').getContext('2d');
+            misspelledChart = new Chart(misspelledCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Loading data...'],
+                    datasets: [{
+                        label: 'Misspell Count',
+                        data: [0],
+                        backgroundColor: '#2563eb',
+                        borderColor: '#1d4ed8',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            const typingCtx = document.getElementById('typingChart').getContext('2d');
+            typingChart = new Chart(typingCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Loading data...'],
+                    datasets: [{
+                        label: 'Words Per Minute',
+                        data: [0],
+                        fill: false,
+                        borderColor: '#2563eb',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
