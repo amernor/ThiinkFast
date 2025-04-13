@@ -4,7 +4,7 @@ Thiinkfast is a smart writing tool for ADHD and neurodivergent users. It learns 
 Problem
 
 
-ThiinkFast - your hyperperosnalized autocorrect!
+ThiinkFast - your hyperpersonalized autocorrect!
 
 📊 Stats That Provoke
 
