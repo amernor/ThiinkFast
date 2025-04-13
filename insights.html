@@ -1,113 +1,71 @@
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usage Insights</title>
+    <title>ThinkFast Insights</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f9fafb;
-            color: #1f2937;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2563eb;
-            margin-top: 0;
-        }
-        .chart-container {
-            margin: 30px 0;
-            position: relative;
-            height: 300px;
-        }
-        .insight-card {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .chart-container { height: 300px; margin: 30px 0; }
+        button { background: #2563eb; color: white; border: none; padding: 8px 16px; margin-bottom: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Usage Insights</h1>
-        
-        <div class="insight-card">
-            <h2>Most Misspelled Words</h2>
-            <div class="chart-container">
-                <canvas id="misspelledChart"></canvas>
-            </div>
-        </div>
-        
-        <div class="insight-card">
-            <h2>Typing Speed (WPM)</h2>
-            <div class="chart-container">
-                <canvas id="typingChart"></canvas>
-            </div>
-        </div>
+    <button onclick="window.location.href='/'">← Back to Editor</button>
+    <h1>Usage Insights</h1>
+    
+    <h2>Most Misspelled Words</h2>
+    <div class="chart-container">
+        <canvas id="misspelledChart"></canvas>
+    </div>
+    
+    <h2>Typing Speed (WPM)</h2>
+    <div class="chart-container">
+        <canvas id="typingChart"></canvas>
     </div>
 
     <script>
+        // Data passed from FastAPI
+        const misspelledData = JSON.parse('{{ misspelled|tojson|safe }}');
+        const typingData = JSON.parse('{{ typing_speed|tojson|safe }}');
+
         // Misspelled words chart
-        const misspelledCtx = document.getElementById('misspelledChart').getContext('2d');
-        new Chart(misspelledCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Definately', 'Seperate', 'Occured', 'Recieve', 'Untill'],
-                datasets: [{
-                    label: 'Misspell Count',
-                    data: [12, 8, 6, 5, 4],
-                    backgroundColor: '#2563eb',
-                    borderColor: '#1d4ed8',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
+        new Chart(
+            document.getElementById('misspelledChart'),
+            {
+                type: 'bar',
+                data: {
+                    labels: misspelledData.map(item => item[0]),
+                    datasets: [{
+                        label: 'Misspell Count',
+                        data: misspelledData.map(item => item[1]),
+                        backgroundColor: '#2563eb'
+                    }]
                 }
             }
-        });
+        );
 
         // Typing speed chart
-        const typingCtx = document.getElementById('typingChart').getContext('2d');
-        new Chart(typingCtx, {
-            type: 'line',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Words Per Minute',
-                    data: [45, 52, 48, 60, 55, 40, 58],
-                    fill: false,
-                    borderColor: '#2563eb',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        min: 30
-                    }
+        new Chart(
+            document.getElementById('typingChart'),
+            {
+                type: 'line',
+                data: {
+                    labels: typingData.map(item => item.date),
+                    datasets: [{
+                        label: 'Words Per Minute',
+                        data: typingData.map(item => item.wpm),
+                        borderColor: '#2563eb',
+                        tension: 0.1
+                    }]
                 }
             }
-        });
+        );
     </script>
 </body>
 </html>

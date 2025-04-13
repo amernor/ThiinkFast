@@ -1,340 +1,57 @@
-<!frontend html>
+
+
+
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ThinkFast | Hyper-Personal Writing Assistant</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <title>ThinkFast Editor</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --text: #1f2937;
-            --text-light: #6b7280;
-            --border: #e5e7eb;
-            --bg: #f9fafb;
-            --card: #ffffff;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 40px auto;
-            background-color: var(--card);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
-            padding: 32px;
-        }
-        
-        h1 {
-            color: var(--primary);
-            margin-top: 0;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .subtitle {
-            color: var(--text-light);
-            font-size: 15px;
-            margin-bottom: 24px;
-        }
-        
-        .editor-container {
-            position: relative;
-            margin-top: 20px;
-        }
-        
-        #editor {
-            width: 100%;
-            min-height: 300px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 15px;
-            line-height: 1.6;
-            resize: vertical;
-            font-family: inherit;
-            color: var(--text);
-            margin: 4px 0; /* Minimal vertical margin */
-            box-sizing: border-box; /* Ensures padding stays within width */
-        }
-        
-        #editor:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
-        }
-        
-        .toolbar {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            font-family: inherit;
-            transition: background-color 0.2s;
-        }
-        
-        button:hover {
-            background-color: var(--primary-dark);
-        }
-        
-        button.secondary {
-            background-color: white;
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-        
-        button.secondary:hover {
-            background-color: #f3f4f6;
-        }
-        
-        .personalization-panel {
-            margin-top: 32px;
-            background-color: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-        
-        .panel-title {
-            font-weight: 600;
-            margin-top: 0;
-            margin-bottom: 16px;
-            font-size: 16px;
-            color: var(--text);
-        }
-        
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-            margin-right: 12px;
-        }
-        
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #e2e8f0;
-            transition: .2s;
-            border-radius: 24px;
-        }
-        
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .2s;
-            border-radius: 50%;
-        }
-        
-        input:checked + .slider {
-            background-color: var(--primary);
-        }
-        
-        input:checked + .slider:before {
-            transform: translateX(20px);
-        }
-        
-        .toggle-label {
-            font-size: 14px;
-            color: var(--text);
-        }
-        
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            font-size: 13px;
-            color: var(--text-light);
-        }
-        
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        #editor { width: 100%; height: 200px; border: 1px solid #ddd; padding: 10px; }
+        button { background: #2563eb; color: white; border: none; padding: 8px 16px; margin: 10px 5px 10px 0; cursor: pointer; }
+        .toolbar { margin: 15px 0; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM9 16.5L4.5 12L5.91 10.59L9 13.67L18.09 4.58L19.5 6L9 16.5Z" fill="#2563eb"/>
-            </svg>
-            ThinkFast
-        </h1>
-        <p class="subtitle">writing assistant tailored to your unique style</p>
-        
-        <div class="toolbar">
-            <button id="correct-btn">Analyze Text</button>
-            <button class="secondary" id="preferences-btn">Preferences</button>
-            <button class="secondary" id="stats-btn" onclick="window.location.href='insights.html'">Usage Insights</button>
-        </div>
-        
-        <div class="editor-container">
-            <div id="editor" contenteditable="true" spellcheck="false" placeholder="Type or paste your content here..."></div>
-            </div>
-        </div>
-        
-        <div class="personalization-panel">
-            <h3 class="panel-title">Personalization Settings</h3>
-            
-            <div class="toggle-container">
-                <label class="toggle-switch">
-                    <input type="checkbox" checked>
-                    <span class="slider"></span>
-                </label>
-                <span class="toggle-label">Adapt to my writing style</span>
-            </div>
-            
-            <div class="toggle-container">
-                <label class="toggle-switch">
-                    <input type="checkbox" checked>
-                    <span class="slider"></span>
-                </label>
-                <span class="toggle-label">Learn from my corrections</span>
-            </div>
-            
-            <div class="toggle-container">
-                <label class="toggle-switch">
-                    <input type="checkbox">
-                    <span class="slider"></span>
-                </label>
-                <span class="toggle-label">Formal tone preference</span>
-            </div>
-        </div>
-        
-        <div class="status-bar">
-            <span id="character-count">0 characters</span>
-            <span id="personalization-level">Personalization: Learning (23%)</span>
-        </div>
+    <h1>ThinkFast Editor</h1>
+    <div class="toolbar">
+        <button id="correct-btn">Autocorrect</button>
+        <button id="insights-btn">View Insights</button>
     </div>
-    
-    <script>
-        // Dictionary of common misspellings and their corrections
-        const autocorrectDictionary = {
-            "teh": "the",
-            "adn": "and",
-            "thsi": "this",
-            "taht": "that",
-            "tahn": "than",
-            "msitake": "mistake",
-            "msielled": "misspelled",
-            "wrod": "word",
-            "rnadom": "random",
-            "automiclaly": "automatically",
-            "autocrrected": "autocorrected",
-            "isntead": "instead",
-            "nay": "any",
-            "udpate": "update",
-            "testcase": "test case",
-            "onyl": "only",
-            "rnaodm": "random",
-            "msiepkked": "misspelled"
-        };
+    <div id="editor" contenteditable="true">Type here... (try "teh adn thsi")</div>
+    <div id="result" style="margin-top: 10px;"></div>
 
-        // Basic functionality
-        const editor = document.getElementById('editor');
-        const characterCount = document.getElementById('character-count');
-        const personalizationLevel = document.getElementById('personalization-level');
-        
-        // Function to autocorrect text
-        function autocorrectText() {
-            const text = editor.innerText;
-            const words = text.split(/\s+/);
-            let correctedText = text;
+    <script>
+        document.getElementById('correct-btn').addEventListener('click', async () => {
+            const text = document.getElementById('editor').innerText;
+            const resultDiv = document.getElementById('result');
             
-            // Check each word against our dictionary
-            words.forEach(word => {
-                const cleanWord = word.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
-                if (autocorrectDictionary[cleanWord]) {
-                    correctedText = correctedText.replace(new RegExp(`\\b${word}\\b`, 'g'), autocorrectDictionary[cleanWord]);
+            try {
+                const response = await fetch('http://localhost:8000/api/correct', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await response.json();
+                
+                document.getElementById('editor').innerText = data.corrected;
+                resultDiv.innerHTML = `Corrected ${data.corrections.length} errors: ${data.corrections.join(', ')}`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = "Backend unavailable - using fallback";
+                const corrections = { "teh":"the", "adn":"and", "thsi":"this", "taht":"that" };
+                let corrected = text;
+                for (const [wrong, right] of Object.entries(corrections)) {
+                    corrected = corrected.replace(wrong, right);
                 }
-            });
-            
-            // Only update if we made changes to prevent cursor jumping
-            if (correctedText !== text) {
-                const selection = window.getSelection();
-                const range = selection.getRangeAt(0);
-                const cursorPosition = range.startOffset;
-                
-                editor.innerText = correctedText;
-                
-                // Restore cursor position
-                const newRange = document.createRange();
-                newRange.setStart(editor.childNodes[0], Math.min(cursorPosition, correctedText.length));
-                newRange.collapse(true);
-                selection.removeAllRanges();
-                selection.addRange(newRange);
+                document.getElementById('editor').innerText = corrected;
             }
-        }
-        
-        // Update character count and autocorrect
-        editor.addEventListener('input', function() {
-            const text = editor.innerText;
-            characterCount.textContent = `${text.length} characters`;
-            
-            // Perform autocorrection
-            autocorrectText();
-            
         });
-        
-        // Button click handlers
-        document.getElementById('correct-btn').addEventListener('click', function() {
-            alert("Text sent to backend for analysis");
-        });
-        
-        document.getElementById('preferences-btn').addEventListener('click', function() {
-            alert("Preferences dialog would open here");
-        });
-        
-        document.getElementById('stats-btn').addEventListener('click', function() {
-            alert("Usage statistics would display here");
-        });
-        
-        // Initialize with a test case of misspelled words
-        window.addEventListener('DOMContentLoaded', () => {
-            const testCase = "Here is a testcase with some rnaodm msiepkked words that should be autocorrected automiclaly.";
-            editor.innerText = testCase;
-            characterCount.textContent = `${testCase.length} characters`;
+
+        document.getElementById('insights-btn').addEventListener('click', () => {
+            window.location.href = '/insights';
         });
     </script>
 </body>
