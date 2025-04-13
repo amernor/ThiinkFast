@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grammar Correction Tool</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-top: 0;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .result-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: #f9fafb;
+        }
+        .correction {
+            display: inline-block;
+            background-color: #fef3c7;
+            border-bottom: 2px dashed #d97706;
+            padding: 0 2px;
+            cursor: help;
+            position: relative;
+        }
+        .correction-tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 8px 12px;
+            z-index: 100;
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+            white-space: nowrap;
+        }
+        .correction:hover .correction-tooltip {
+            display: block;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-right: 10px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: #2563eb;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        #status {
+            margin-left: 10px;
+            color: #d97706;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Grammar Correction Tool</h1>
+        
+        <div class="toggle-container">
+            <label class="toggle-switch">
+                <input type="checkbox" id="autoCorrectToggle">
+                <span class="toggle-slider"></span>
+            </label>
+            <span>Enable Auto-Correction</span>
+            <span id="status"></span>
+        </div>
+        
+        <textarea id="userInput" placeholder="Type or paste your text here..."></textarea>
+        <button id="correctBtn">Correct Grammar</button>
+        
+        <div class="result-container" id="resultContainer" style="display:none;">
+            <h3>Corrected Text:</h3>
+            <div id="correctedText"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const AUTO_CORRECT_DELAY = 800; // Milliseconds after typing stops
+        let autoCorrectEnabled = false;
+        let correctionTimeout = null;
+
+        // DOM Elements
+        const userInput = document.getElementById('userInput');
+        const correctBtn = document.getElementById('correctBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const correctedText = document.getElementById('correctedText');
+        const autoCorrectToggle = document.getElementById('autoCorrectToggle');
+        const status = document.getElementById('status');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Manual correction button
+            correctBtn.addEventListener('click', processCorrection);
+            
+            // Auto-correction toggle
+            autoCorrectToggle.addEventListener('change', () => {
+                autoCorrectEnabled = autoCorrectToggle.checked;
+                updateStatus(autoCorrectEnabled ? 'Auto-correct enabled' : 'Auto-correct disabled');
+            });
+
+            // Set up auto-correction listener
+            userInput.addEventListener('input', handleUserInput);
+        });
+
+        // Handle typing with auto-correction
+        function handleUserInput() {
+            clearTimeout(correctionTimeout);
+            
+            if (autoCorrectEnabled) {
+                updateStatus('Waiting for pause...');
+                correctionTimeout = setTimeout(() => {
+                    if (userInput.value.trim()) {
+                        updateStatus('Correcting...');
+                        processCorrection();
+                    }
+                }, AUTO_CORRECT_DELAY);
+            }
+        }
+
+        // Process correction (works for both manual and auto)
+        async function processCorrection() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            try {
+                // Simulate API call (replace with actual fetch in your implementation)
+                const data = await simulateCorrection(text);
+                
+                // Update UI
+                correctedText.innerHTML = applyHighlights(data.corrected_text, data.corrections);
+                if (autoCorrectEnabled) {
+                    userInput.value = data.corrected_text; // Auto-update input field
+                }
+                
+                resultContainer.style.display = 'block';
+                updateStatus('Correction complete');
+                
+            } catch (error) {
+                console.error("Correction failed:", error);
+                correctedText.textContent = "Error during correction";
+                updateStatus('Error occurred');
+            }
+        }
+
+        // Simulate backend correction (REPLACE WITH ACTUAL API CALL)
+        function simulateCorrection(text) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Common misspellings and grammar errors dictionary
+                    const commonErrors = {
+                        // Spelling errors
+                        'helo': 'hello',
+                        'nae': 'name',
+                        'teh': 'the',
+                        'recieve': 'receive',
+                        'freind': 'friend',
+                        'beleive': 'believe',
+                        'accomodate': 'accommodate',
+                        'definate': 'definite',
+                        'occured': 'occurred',
+                        'tommorrow': 'tomorrow',
+                        'seperate': 'separate',
+                        'wierd': 'weird',
+                        'goverment': 'government',
+                        'febuary': 'February',
+                        'fone': 'phone',
+                        'wat': 'what',
+                        'ur': 'your',
+                        'u': 'you',
+                        'r': 'are',
+                        // Grammar errors
+                        ' i ': ' I ',
+                        ' i\'m ': ' I\'m ',
+                        ' i\'ve ': ' I\'ve ',
+                        ' i\'ll ': ' I\'ll ',
+                        ' dont ': ' don\'t ',
+                        ' cant ': ' can\'t ',
+                        ' wont ': ' won\'t ',
+                        ' didnt ': ' didn\'t ',
+                        ' havent ': ' haven\'t ',
+                        ' im ': ' I\'m ',
+                        ' ive ': ' I\'ve ',
+                        ' ill ': ' I\'ll ',
+                        ' theyre ': ' they\'re ',
+                        ' youre ': ' you\'re ',
+                        ' wouldnt ': ' wouldn\'t ',
+                        ' shouldnt ': ' shouldn\'t ',
+                        ' couldnt ': ' couldn\'t ',
+                        ' isnt ': ' isn\'t ',
+                        ' arent ': ' aren\'t ',
+                        ' its ': ' it\'s ' // Note: context-dependent, simplified here
+                    };
+
+                    // Grammar pattern corrections (more complex rules)
+                    const grammarPatterns = [
+                        { regex: /\bI are\b/g, replacement: 'I am' },
+                        { regex: /\bhe go\b/g, replacement: 'he goes' },
+                        { regex: /\bshe go\b/g, replacement: 'she goes' },
+                        { regex: /\bit go\b/g, replacement: 'it goes' },
+                        { regex: /\bthey goes\b/g, replacement: 'they go' },
+                        { regex: /\bthey is\b/g, replacement: 'they are' },
+                        { regex: /\bwe is\b/g, replacement: 'we are' },
+                        { regex: /\byou is\b/g, replacement: 'you are' },
+                        { regex: /\bhe have\b/g, replacement: 'he has' },
+                        { regex: /\bshe have\b/g, replacement: 'she has' },
+                        { regex: /\bit have\b/g, replacement: 'it has' }
+                    ];
+
+                    const corrections = [];
+                    let corrected = ' ' + text.toLowerCase() + ' '; // Add spaces for better word boundary matching
+                    let originalText = corrected;
+                    
+                    // Check for common misspellings and simple grammar errors
+                    for (const [error, correction] of Object.entries(commonErrors)) {
+                        const regex = new RegExp(`\\b${escapeRegExp(error)}\\b`, 'gi');
+                        if (corrected.match(regex)) {
+                            const matches = corrected.match(regex);
+                            if (matches) {
+                                matches.forEach(match => {
+                                    corrections.push({original: match, corrected: correction});
+                                });
+                            }
+                            corrected = corrected.replace(regex, correction);
+                        }
+                    }
+                    
+                    // Check for more complex grammar patterns
+                    grammarPatterns.forEach(pattern => {
+                        if (corrected.match(pattern.regex)) {
+                            const matches = originalText.match(pattern.regex);
+                            if (matches) {
+                                matches.forEach(match => {
+                                    corrections.push({original: match, corrected: pattern.replacement});
+                                });
+                            }
+                            corrected = corrected.replace(pattern.regex, pattern.replacement);
+                        }
+                    });
+                    
+                    // Special case for capitalization at the beginning of sentences
+                    corrected = corrected.replace(/\.\s+([a-z])/g, (match, letter) => {
+                        corrections.push({original: letter, corrected: letter.toUpperCase()});
+                        return '. ' + letter.toUpperCase();
+                    });
+                    
+                    // Capitalize first letter of the text if it's lowercase
+                    if (/^\s*[a-z]/.test(corrected)) {
+                        const firstChar = corrected.trim().charAt(0);
+                        const capitalizedChar = firstChar.toUpperCase();
+                        corrections.push({original: firstChar, corrected: capitalizedChar});
+                        corrected = corrected.replace(/^\s*[a-z]/, ' ' + capitalizedChar);
+                    }
+                    
+                    // Remove the extra spaces we added at the beginning and end
+                    corrected = corrected.trim();
+                    
+                    resolve({
+                        original_text: text,
+                        corrected_text: corrected,
+                        corrections: corrections
+                    });
+                }, 300); // Simulate network delay
+            });
+        }
+
+        // Apply highlighting to corrected words
+        function applyHighlights(text, corrections) {
+            if (corrections.length === 0) return "No corrections needed";
+            
+            let result = text;
+            corrections.forEach(c => {
+                // Escape both the corrected text and handle word boundaries properly
+                const regex = new RegExp(`\\b${escapeRegExp(c.corrected)}\\b`, 'gi');
+                result = result.replace(regex, match => 
+                    `<span class="correction">${match}<span class="correction-tooltip">Was: ${c.original}</span></span>`
+                );
+            });
+            return result;
+        }
+
+        // Helper to escape regex characters
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // Update status message
+        function updateStatus(message) {
+            status.textContent = message;
+            setTimeout(() => status.textContent = '', 2000);
+        }
+    </script>
+</body>
+</html>
