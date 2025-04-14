@@ -38,7 +38,6 @@ ThinkFast is built to learn from you, not lecture you. As you type, it silently 
 
 
 
-(enter screesnhot here of website)
 
 
 
